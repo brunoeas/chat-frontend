@@ -9,20 +9,49 @@ export default function Chat() {
   const router = useRouter();
   const { user, setUser } = useUser();
   const [newMessage, setNewMessage] = useState('');
-  const messages: { username: string, timestamp: string, text: string }[] = [
-    { username: 'Bruno', timestamp: '08/12/2024 14:00', text: 'Mensagem 1' },
-    { username: 'Outra pessoa', timestamp: '08/12/2024 14:05', text: 'Mensagem 2' }
-  ];
+  const [messages, setMessages] = useState<{ username: string, timestamp: string, text: string }[]>([]);
+
+  const sendMessage = async () => {
+    return Promise.resolve();
+  }
 
   const handlesSendingNewMessage = () => {
     setNewMessage('');
+    sendMessage().then(() => console.log('Mensagem enviada.', new Date()))
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && e.shiftKey) {
       e.preventDefault(); // Impede o envio do formulário
-      setNewMessage((prev) => prev + '\n'); // Adiciona uma quebra de linha
+      setNewMessage((prev) => prev + '\n');
     }
+  };
+
+  const getMessages: () => Promise<{ username: string, timestamp: string, text: string }[]> = async () => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => resolve([
+        { username: 'Bruno', timestamp: '08/12/2024 14:00', text: 'Mensagem 1' },
+        { username: 'Outra pessoa', timestamp: '08/12/2024 14:05', text: 'Mensagem 2' },
+        { username: 'Outra pessoa', timestamp: '08/12/2024 14:05', text: 'Mensagem 2' },
+        { username: 'Outra pessoa', timestamp: '08/12/2024 14:06', text: 'Mensagem 2' },
+        { username: 'Outra pessoa', timestamp: '08/12/2024 14:06', text: 'Mensagem 2' },
+      ]), 100);
+    });
+  }
+
+  const startFetchingMessages = () => {
+    const fetchMessages = async () => {
+      getMessages()
+        .then((res) => {
+          console.log('fetchMessages')
+          setMessages(res);
+        })
+        .catch(err => {
+          console.error('Ocorreu um erro', err);
+        })
+        .finally(() => setTimeout(fetchMessages, 100));
+    }
+    fetchMessages();
   };
 
   useEffect(() => {
@@ -37,7 +66,10 @@ export default function Chat() {
       setUser(storedUser);
       return;
     }
-  });
+
+    console.log('Iniciando componente Chat.');
+    startFetchingMessages();
+  }, [user]);
 
   return (
     <div className="flex h-screen bg-gray-100">
