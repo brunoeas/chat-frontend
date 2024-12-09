@@ -2,56 +2,63 @@
 
 import { useRouter } from 'next/navigation';
 import Form from 'next/form';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useUser } from './../user-context';
+import { getMessages, sendMessage } from './chat.service';
+
+const DELAY_MILLIS = 200;
 
 export default function Chat() {
   const router = useRouter();
   const { user, setUser } = useUser();
   const [newMessage, setNewMessage] = useState('');
   const [messages, setMessages] = useState<{ username: string, timestamp: string, text: string }[]>([]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const sendMessage = async () => {
-    return Promise.resolve();
-  }
-
-  const handlesSendingNewMessage = () => {
+  function handlesSendingNewMessage() {
+    const messageToSend = newMessage;
     setNewMessage('');
-    sendMessage().then(() => console.log('Mensagem enviada.', new Date()))
+    sendMessage(messageToSend, user || '').then(() => {
+      console.info('Mensagem enviada.', new Date());
+      setTimeout(scrollToBottom, DELAY_MILLIS+50);
+    })
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter' && e.shiftKey) {
       e.preventDefault(); // Impede o envio do formulário
       setNewMessage((prev) => prev + '\n');
     }
   };
 
-  const getMessages: () => Promise<{ username: string, timestamp: string, text: string }[]> = async () => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => resolve([
-        { username: 'Bruno', timestamp: '08/12/2024 14:00', text: 'Mensagem 1' },
-        { username: 'Outra pessoa', timestamp: '08/12/2024 14:05', text: 'Mensagem 2' },
-        { username: 'Outra pessoa', timestamp: '08/12/2024 14:05', text: 'Mensagem 2' },
-        { username: 'Outra pessoa', timestamp: '08/12/2024 14:06', text: 'Mensagem 2' },
-        { username: 'Outra pessoa', timestamp: '08/12/2024 14:06', text: 'Mensagem 2' },
-      ]), 100);
-    });
-  }
+  function startFetchingMessages() {
+    let firstFetch = false;
 
-  const startFetchingMessages = () => {
-    const fetchMessages = async () => {
+    function fetchMessages() {
       getMessages()
         .then((res) => {
-          console.log('fetchMessages')
-          setMessages(res);
+          console.info('fetchMessages');
+          setMessages(res.data.list);
+          if (!firstFetch) {
+            setTimeout(scrollToBottom, DELAY_MILLIS+50);
+          }
         })
         .catch(err => {
-          console.error('Ocorreu um erro', err);
+          console.error('Ocorreu um erro', err, err.error, JSON.stringify(err));
         })
-        .finally(() => setTimeout(fetchMessages, 100));
+        .finally(() => {
+          firstFetch = true;
+          setTimeout(fetchMessages, DELAY_MILLIS);
+        });
     }
+
     fetchMessages();
+  };
+
+  function scrollToBottom() {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   useEffect(() => {
@@ -104,6 +111,8 @@ export default function Chat() {
               );
             }
           })}
+
+          <div ref={messagesEndRef}></div>
         </div>
 
         <Form action={handlesSendingNewMessage}>

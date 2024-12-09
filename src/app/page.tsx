@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser } from './user-context';
 import Form from 'next/form';
 
@@ -18,6 +18,15 @@ export default function Home() {
     localStorage.setItem('username', username);
     router.push('/chat');
   };
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('username');
+    if (storedUser && storedUser.trim()) {
+      setUser(storedUser);
+      router.push('/chat');
+      return;
+    }
+  }, []);
 
   return (
     <Form action={handleNavigate}>
